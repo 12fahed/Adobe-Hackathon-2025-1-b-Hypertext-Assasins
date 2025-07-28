@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  pdf-processor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    platform: linux/amd64
+    volumes:
+      - ./app/input:/app/input
+      - ./app/output:/app/output
+    environment:
+      - PYTHONUNBUFFERED=1
+      - OLLAMA_HOST=0.0.0.0
+    ports:
+      - "11434:11434"  # Ollama API port (optional, for debugging)
+    networks:
+      - pdf-processing
+    # Remove network isolation to allow Ollama model downloads
+    # network_mode: "none"  # Comment this out when using Ollama
+
+networks:
+  pdf-processing:
+    driver: bridge

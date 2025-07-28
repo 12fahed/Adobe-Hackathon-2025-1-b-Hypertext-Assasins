@@ -98,15 +98,17 @@ This advanced script leverages the processed PDF data to generate structured, qu
 ## Technical Features
 
 ### Offline Operation
-- ✅ No internet/network calls required
-- ✅ All models and dependencies bundled in container
+- ✅ No internet/network calls required for standard PDF processing
+- ⚠️ **AI-Enhanced Mode**: Requires internet for initial Ollama model download (~2GB)
+- ✅ All models and dependencies bundled in container after first run
 - ✅ Fully self-contained processing pipeline
 
 ### Docker Compatibility
 - ✅ AMD64 architecture support
 - ✅ Linux/amd64 platform specification
 - ✅ No GPU dependencies
-- ✅ Model size under 200MB limit
+- ✅ Model size under 200MB limit (ML model only)
+- ⚠️ **With Ollama**: Additional ~2GB for phi model (downloaded once)
 
 ### Input/Output Handling
 - **Input**: Processes all PDF files from `/app/input` directory
@@ -115,40 +117,81 @@ This advanced script leverages the processed PDF data to generate structured, qu
 
 ## How to Build and Run
 
-### Building the Docker Image
+### Standard PDF Processing (No AI)
+For basic PDF processing without AI analysis:
+
+#### Building the Docker Image
 ```bash
 docker build --platform linux/amd64 -t mysolutionname:somerandomidentifier .
 ```
 
-### Running the Solution
+#### Running the Solution
 ```bash
 docker run --rm -v $(pwd)/input:/app/input -v $(pwd)/output:/app/output --network none mysolutionname:somerandomidentifier
 ```
 
-### AI-Powered Query Processing (Extended Workflow)
-For advanced use cases requiring persona-based analysis and structured output generation:
+### AI-Enhanced Processing with Ollama
+For advanced processing with AI-powered analysis:
 
-1. **Process PDFs**: First run the standard pipeline to extract and structure PDF data
-2. **Configure Query Input**: Create or modify `challenge1b_input.json` with:
-   - Target PDF documents list
-   - Persona role (e.g., "Travel Planner", "Business Analyst")
-   - Specific job requirements or objectives
-3. **Run AI Analysis**: Execute the query-based output generator
-   ```bash
-   python generate_query_output.py
-   ```
-4. **Review Output**: Check generated `challenge1b_output.json` for structured analysis
+#### Prerequisites
+- Docker with internet access (for downloading Ollama models)
+- Sufficient disk space (~2GB for phi model)
 
-#### Prerequisites for AI Workflow
-- **Ollama Installation**: Must have Ollama installed and running locally
-- **Model Availability**: Requires access to the "phi" model in Ollama
-- **Processed Data**: PDFs must be processed first using the standard pipeline
+#### Quick Start (Recommended)
+**Linux/Mac:**
+```bash
+chmod +x run-with-ollama.sh
+./run-with-ollama.sh
+```
+
+**Windows:**
+```cmd
+run-with-ollama.bat
+```
+
+#### Manual Docker Commands
+```bash
+# Build with Ollama support
+docker build --platform linux/amd64 -t pdf-processor-ollama:latest .
+
+# Run with network access for model download (includes debugging port)
+docker run --rm \
+  -v $(pwd)/app/input:/app/input \
+  -v $(pwd)/app/output:/app/output \
+  -p 11434:11434 \
+  pdf-processor-ollama:latest
+
+# Run without port mapping (recommended for production)
+docker run --rm \
+  -v $(pwd)/app/input:/app/input \
+  -v $(pwd)/app/output:/app/output \
+  pdf-processor-ollama:latest
+```
+
+**Note about port mapping:**
+- `-p 11434:11434` exposes Ollama API for external debugging/monitoring (optional)
+- Without port mapping, all functionality works normally inside the container
+- Port mapping is only needed if you want to access Ollama API from outside the container
+
+#### Using Docker Compose
+```bash
+docker-compose up --build
+```
 
 ### Expected Behavior
-1. Container automatically processes all PDFs from mounted `/app/input` directory
+
+#### Standard Mode (Network Isolated)
+1. Container processes all PDFs from mounted `/app/input` directory
 2. For each `filename.pdf`, generates corresponding `filename.json` in `/app/output`
 3. JSON output contains structured document data with detected elements and metadata
 4. Process completes automatically and container exits
+
+#### AI-Enhanced Mode (Network Required)
+1. **First run only**: Downloads phi model (~2GB) - may take 5-10 minutes
+2. Container processes all PDFs from mounted `/app/input` directory  
+3. For each `filename.pdf`, generates corresponding `filename.json` in `/app/output`
+4. **Additionally**: Generates `challenge1b_output.json` with AI analysis if `challenge1b_input.json` exists
+5. **Subsequent runs**: Uses cached model for faster processing (network not required)
 
 ## Project Structure
 ```

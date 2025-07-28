@@ -1,0 +1,115 @@
+# Alternative Dockerfile with Ollama integration
+# Use AMD64 compatible Python base image
+FROM --platform=linux/amd64 python:3.10-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies for Ollama
+RUN apt-get update && apt-get install -y \
+    curl \
+    wget \
+    ca-certificates \
+    bash \
+    procps \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Ollama
+RUN curl -fsSL https://ollama.ai/install.sh | sh
+
+# Create input and output directories
+RUN mkdir -p /app/input /app/output
+
+# Copy requirements first for better Docker caching
+COPY requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy all necessary Python scripts
+COPY process.py .
+COPY extract_data_from_pdf.py .
+COPY ml-model.py .
+COPY generate_query_output.py .
+
+# Copy input configuration files
+COPY challenge1b_input.json .
+
+# Copy the ML model file
+COPY extract-structure-data-model.joblib .
+
+# Copy the app directory structure (but input/output will be mounted)
+COPY app/ ./app/
+
+# Set environment variables for better Python behavior in containers
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV OLLAMA_HOST=0.0.0.0
+
+# Create initialization script
+RUN cat > /app/init-ollama.sh << 'EOF'
+#!/bin/bash
+set -e
+
+echo "Initializing Ollama..."
+ollama serve &
+OLLAMA_PID=$!
+
+echo "Waiting for Ollama to be ready..."
+sleep 15
+
+echo "Pulling phi model (this may take a few minutes)..."
+ollama pull phi
+
+echo "Ollama setup complete!"
+echo "Ollama PID: $OLLAMA_PID"
+
+# Keep the process running
+tail -f /dev/null
+EOF
+
+RUN chmod +x /app/init-ollama.sh
+
+# Create the main startup script
+RUN cat > /app/startup.sh << 'EOF'
+#!/bin/bash
+set -e
+
+# Function to check if Ollama is running
+check_ollama() {
+    ollama list >/dev/null 2>&1
+}
+
+# Start Ollama if not running
+if ! check_ollama; then
+    echo "Starting Ollama service..."
+    ollama serve &
+    sleep 10
+    
+    echo "Pulling phi model if not available..."
+    if ! ollama list | grep -q "phi"; then
+        ollama pull phi
+    fi
+fi
+
+echo "Running PDF processing pipeline..."
+python process.py
+
+echo "Checking if AI analysis should run..."
+if [ -f "challenge1b_input.json" ] && [ -s "challenge1b_input.json" ]; then
+    echo "Running AI-powered query analysis..."
+    python generate_query_output.py
+else
+    echo "No challenge1b_input.json found or file is empty. Skipping AI analysis."
+fi
+
+echo "Processing complete!"
+EOF
+
+RUN chmod +x /app/startup.sh
+
+# Expose Ollama port
+EXPOSE 11434
+
+# Use the startup script as the entry point
+CMD ["/app/startup.sh"]
