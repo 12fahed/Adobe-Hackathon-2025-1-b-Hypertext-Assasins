@@ -1,8 +1,8 @@
-PyMuPDF=1.26.3
-pandas=2.2.1
-numpy=1.26.4
-scikit-learn=1.5.1
-titlecase=2.4.1
-textstat=0.7.8
-langdetect=1.0.9
-joblib=1.4.2
+PyMuPDF==1.26.3
+pandas==2.2.1
+numpy==1.26.4
+scikit-learn==1.5.1
+titlecase==2.4.1
+textstat==0.7.8
+langdetect==1.0.9
+joblib==1.4.2
