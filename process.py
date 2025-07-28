@@ -134,6 +134,17 @@ def main():
         print(f"\nPipeline FAILED at ML model processing step!")
         sys.exit(1)
     
+    # Step 3: Give the Query Output
+    success = run_script(
+        'generate_query_output.py',
+        'Generate Query Output'
+    )
+
+    if not success:
+        print(f"\nPipeline FAILED at Generate Query Output!")
+        sys.exit(1)
+
+    
     # Pipeline completed successfully
     total_end_time = time.time()
     total_duration = total_end_time - total_start_time
