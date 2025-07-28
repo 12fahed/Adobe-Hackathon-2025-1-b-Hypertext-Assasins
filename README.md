@@ -1,0 +1,164 @@
+# PDF Document Processing Solution
+
+## Overview
+This solution provides an automated pipeline for processing PDF documents and extracting structured data using a combination of rule-based text extraction and machine learning models.
+
+## Approach
+
+### 1. PDF Data Extraction (`extract_data_from_pdf.py`)
+- **Text Extraction**: Uses PyMuPDF to extract text, formatting, and layout information from PDF documents
+- **Structure Detection**: Identifies document elements like headers, bullet points, paragraphs, and lists
+- **Feature Engineering**: Extracts features such as font sizes, text positioning, bullet point detection, and text statistics
+- **Language Detection**: Automatically detects document language using langdetect
+- **Output**: Generates JSON files containing structured document data with metadata
+
+### 2. Machine Learning Model (`ml-model.py`)
+Our advanced Document Structure Extractor employs a sophisticated hybrid approach combining machine learning with intelligent rule-based methods.
+
+#### Core ML Architecture
+- **Dual Classifier System**: 
+  - **Gradient Boosting Classifier**: For dynamic title detection and classification
+  - **Random Forest Classifier**: For header level classification (H1, H2, H3, etc.)
+- **Feature Engineering**: Extracts 25+ advanced features including:
+  - Position-based features (page number, y-position relative to document)
+  - Font-relative features (size percentiles, ratios compared to document averages)
+  - Multi-line group indicators for detecting headers split across lines
+  - Content pattern features (numbering schemes, capitalization patterns)
+  - Text statistics (length, readability scores, language detection)
+
+#### Smart Document Processing
+- **Dynamic Title Detection**: 
+  - Uses document-relative statistics rather than absolute thresholds
+  - Intelligently determines if a document has a title or should be marked as "no title"
+  - Employs rule-based scoring considering font size percentiles, position, and formatting
+  - Dynamic confidence thresholds based on document characteristics
+
+- **Multi-Line Header Grouping**: 
+  - Automatically detects and groups headers split across 2-3 lines
+  - Uses 7 different grouping criteria: font similarity, position proximity, spacing analysis
+  - Handles hyphenation, continuation patterns, and split titles intelligently
+  - Prevents incorrect merging through smart validation
+
+#### Hybrid Decision Making
+- **ML + Rule-Based Fallback**: Primary ML predictions enhanced by rule-based validation
+- **Confidence Scoring**: All predictions include confidence scores for reliability assessment
+- **Imbalanced Data Handling**: Uses class weights to handle documents with varying structure complexity
+- **Robust Training Pipeline**: Designed to train on 1000+ diverse JSON files with automatic label generation
+
+#### Model Performance Features
+- **Pre-trained Model**: `extract-structure-data-model.joblib` contains the trained ensemble
+- **Model Size**: < 200MB (meets competition requirements)
+- **Offline Operation**: No network dependencies, fully self-contained
+- **Batch Processing**: Efficient processing of multiple documents simultaneously
+
+### 3. Pipeline Orchestration (`process.py`)
+- **Sequential Execution**: Runs extraction followed by ML processing
+- **Error Handling**: Comprehensive error handling and logging
+- **Status Reporting**: Real-time progress updates and completion status
+
+## Libraries and Dependencies
+
+### Core Libraries
+- **PyMuPDF (fitz)**: PDF text and metadata extraction
+- **pandas**: Data manipulation and analysis
+- **numpy**: Numerical computations
+- **scikit-learn**: Machine learning algorithms and preprocessing
+
+### Text Processing
+- **titlecase**: Smart title case conversion
+- **textstat**: Text readability and complexity metrics
+- **langdetect**: Automatic language detection
+
+### Utilities
+- **joblib**: Model serialization and parallel processing
+
+## Technical Features
+
+### Offline Operation
+- ✅ No internet/network calls required
+- ✅ All models and dependencies bundled in container
+- ✅ Fully self-contained processing pipeline
+
+### Docker Compatibility
+- ✅ AMD64 architecture support
+- ✅ Linux/amd64 platform specification
+- ✅ No GPU dependencies
+- ✅ Model size under 200MB limit
+
+### Input/Output Handling
+- **Input**: Processes all PDF files from `/app/input` directory
+- **Output**: Generates corresponding `filename.json` files in `/app/output` directory
+- **Format**: Structured JSON containing document hierarchy and metadata
+
+## How to Build and Run
+
+### Building the Docker Image
+```bash
+docker build --platform linux/amd64 -t mysolutionname:somerandomidentifier .
+```
+
+### Running the Solution
+```bash
+docker run --rm -v $(pwd)/input:/app/input -v $(pwd)/output:/app/output --network none mysolutionname:somerandomidentifier
+```
+
+### Expected Behavior
+1. Container automatically processes all PDFs from mounted `/app/input` directory
+2. For each `filename.pdf`, generates corresponding `filename.json` in `/app/output`
+3. JSON output contains structured document data with detected elements and metadata
+4. Process completes automatically and container exits
+
+## Project Structure
+```
+├── Dockerfile                           # Container configuration
+├── requirements.txt                     # Python dependencies
+├── process.py                          # Main pipeline orchestrator
+├── extract_data_from_pdf.py            # PDF text extraction engine
+├── ml-model.py                         # ML-based structure enhancement
+├── extract-structure-data-model.joblib # Pre-trained ML model
+├── app/
+│   ├── input/                          # PDF input directory (mounted)
+│   ├── output/                         # JSON output directory (mounted)
+│   └── extracted-data/                 # Intermediate processing data
+└── README.md                           # This documentation
+```
+
+## Output Format
+Each processed PDF generates a JSON file containing:
+
+### Document Structure
+- **Document metadata**: Title, language, page count, processing method
+- **Title extraction**: Dynamically detected document title with confidence score
+- **Structured outline**: Hierarchical header structure with multiple levels (H1, H2, H3)
+- **Element classification**: Each text element classified as title, header, paragraph, or list item
+
+### ML Model Output Schema
+```json
+{
+  "title": "Document Title or null if no title detected",
+  "outline": [
+    {
+      "text": "Section 1: Introduction", 
+      "level": "H1",
+      "page": 1,
+    },
+    {
+      "text": "1.1 Background Information",
+      "level": "H2",
+      "page": 1, 
+    }
+  ],
+}
+```
+
+### Enhanced Metadata
+- **Formatting information**: Font sizes, styles, positioning data
+- **Content hierarchy**: Parent-child relationships between document elements  
+- **Processing statistics**: Confidence scores, detection methods used
+- **Multi-line detection**: Identification of headers spanning multiple lines
+
+## Error Handling
+- Graceful handling of corrupted or unreadable PDFs
+- Detailed error logging for debugging
+- Partial processing capability (continues with remaining files if one fails)
+- Exit codes indicate overall pipeline success/failure status

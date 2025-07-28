@@ -1,0 +1,13 @@
+temp
+data
+pdf-data-extracted
+document_extractor.log
+extractFeaturesUsingMiner.py
+# extractFeaturesUsingPDFMU.py
+# extract-structure-data-model.joblib
+# ml-model.py
+ml-model2.py
+# ml-model3.py
+# README_ML_MODEL3.md
+# test_sample.py
+# train_model3.py
